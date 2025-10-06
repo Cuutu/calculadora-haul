@@ -39,12 +39,17 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             {session ? (
               <>
+                <Link href="/">
+                  <Button variant="outline">Inicio</Button>
+                </Link>
                 <Link href="/hauls">
                   <Button variant="outline">Mis Hauls</Button>
                 </Link>
-                <span className="text-sm text-gray-700">
-                  @{session.user?.username}
-                </span>
+                <Link href="/profile">
+                  <span className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer font-medium">
+                    @{session.user?.username}
+                  </span>
+                </Link>
                 <Button
                   variant="outline"
                   onClick={() => signOut()}

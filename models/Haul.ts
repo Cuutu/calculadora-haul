@@ -20,7 +20,7 @@ const ProductSchema = new Schema({
   precioYuanes: { type: Number, required: true },
   precioUSD: { type: Number, required: true },
   precioARS: { type: Number, required: true },
-  link: { type: String, required: true },
+  link: { type: String, required: false, default: '' },
 }, { _id: false });
 
 const ExchangeRatesSchema = new Schema({

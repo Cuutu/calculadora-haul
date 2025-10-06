@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import Navbar from '@/components/navbar';
 import { Haul } from '@/types';
 
 export default function ProfilePage() {
@@ -79,6 +80,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Header del perfil */}
@@ -89,7 +91,7 @@ export default function ProfilePage() {
                   ¡Hola, {session.user?.name}! 👋
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Usuario: @{session.user?.username}
+                  @{session.user?.username}
                 </p>
               </div>
               <div className="flex space-x-3">
