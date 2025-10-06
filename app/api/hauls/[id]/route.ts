@@ -6,7 +6,7 @@ import Haul from '@/models/Haul';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,8 +20,9 @@ export async function GET(
 
     await connectDB();
 
+    const { id } = await params;
     const haul = await Haul.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user.id,
     });
 
@@ -44,7 +45,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -60,9 +61,10 @@ export async function PUT(
 
     await connectDB();
 
+    const { id } = await params;
     const haul = await Haul.findOneAndUpdate(
       {
-        _id: params.id,
+        _id: id,
         userId: session.user.id,
       },
       {
@@ -92,7 +94,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -106,8 +108,9 @@ export async function DELETE(
 
     await connectDB();
 
+    const { id } = await params;
     const haul = await Haul.findOneAndDelete({
-      _id: params.id,
+      _id: id,
       userId: session.user.id,
     });
 

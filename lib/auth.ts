@@ -17,6 +17,11 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          // Skip database connection during build
+          if (process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI) {
+            return null;
+          }
+
           await connectDB();
           
           const user = await User.findOne({ email: credentials.email });
@@ -62,6 +67,5 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/signin',
-    signUp: '/auth/signup',
   },
 };
