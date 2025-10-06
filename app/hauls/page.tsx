@@ -111,7 +111,7 @@ export default function HaulsPage() {
                   </h3>
                   <div className="space-y-2 text-sm text-gray-600">
                     <p>Productos: {haul.products.length}</p>
-                    <p>Peso total: {(haul.totalWeight * 1000).toFixed(0)} grs</p>
+                    <p>Peso total: {haul.totalWeight.toFixed(0)} grs</p>
                     <p>Costo total: ${haul.totalCost.toFixed(2)} ARS</p>
                     <p>
                       Creado: {new Date(haul.createdAt).toLocaleDateString('es-AR')}

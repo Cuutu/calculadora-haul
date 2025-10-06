@@ -44,7 +44,7 @@ export default function Navbar() {
                 </Link>
                 <Link href="/profile">
                   <span className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer font-medium">
-                    @{session.user?.username}
+                    Perfil
                   </span>
                 </Link>
                 <Button
