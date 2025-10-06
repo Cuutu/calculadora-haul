@@ -10,6 +10,7 @@ import Navbar from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Modal } from "@/components/ui/modal"
 import type { Product, ExchangeRates } from "@/types"
 
 const YUAN_TO_USD = 0.14 // Approximate conversion rate
@@ -34,6 +35,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [haulName, setHaulName] = useState("")
   const [saving, setSaving] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showSaveModal, setShowSaveModal] = useState(false)
 
   const fetchExchangeRates = async () => {
     setLoading(true)
@@ -54,12 +57,15 @@ export default function Home() {
 
   const totalProductsUSD = products.reduce((sum, p) => sum + p.precioUSD * p.cantidad, 0)
 
-  const saveHaul = async () => {
+  const handleSaveHaulClick = () => {
     if (!session) {
-      alert('Debes iniciar sesión para guardar hauls')
+      setShowLoginModal(true)
       return
     }
+    setShowSaveModal(true)
+  }
 
+  const saveHaul = async () => {
     if (!haulName.trim()) {
       alert('Por favor ingresa un nombre para tu haul')
       return
@@ -85,8 +91,9 @@ export default function Home() {
       })
 
       if (response.ok) {
-        alert('Haul guardado exitosamente!')
+        alert('¡Haul guardado exitosamente! 🎉')
         setHaulName('')
+        setShowSaveModal(false)
       } else {
         alert('Error al guardar el haul')
       }
@@ -127,35 +134,79 @@ export default function Home() {
           exchangeRates={exchangeRates}
         />
 
-        {session && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Guardar Haul</h3>
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <Label htmlFor="haulName">Nombre del haul</Label>
-                <Input
-                  id="haulName"
-                  value={haulName}
-                  onChange={(e) => setHaulName(e.target.value)}
-                  placeholder="Mi haul de invierno 2024"
-                  className="mt-1"
-                />
-              </div>
-              <Button
-                onClick={saveHaul}
-                disabled={saving || !haulName.trim()}
-              >
-                {saving ? 'Guardando...' : 'Guardar Haul'}
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Botón de Guardar Haul */}
+        <div className="flex justify-center">
+          <Button
+            onClick={handleSaveHaulClick}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+          >
+            💾 Guardar Haul
+          </Button>
+        </div>
 
         <footer className="text-center text-sm text-muted-foreground pt-8 border-t-2 border-primary">
           <p>•Tasas actualizadas desde dolarito.ar • </p>
         </footer>
         </div>
       </main>
+
+      {/* Modal de Login */}
+      <Modal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        title="Iniciar Sesión Requerido"
+      >
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">
+            Debes iniciar sesión para guardar tu haul
+          </p>
+          <div className="flex space-x-3 justify-center">
+            <Button
+              variant="outline"
+              onClick={() => setShowLoginModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowLoginModal(false)
+                window.location.href = '/auth/signin'
+              }}
+            >
+              Iniciar Sesión
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Guardar Haul */}
+      <Modal
+        isOpen={showSaveModal}
+        onClose={() => {
+          setShowSaveModal(false)
+          setHaulName('')
+        }}
+        title="Guardar Haul"
+        onConfirm={saveHaul}
+        confirmText={saving ? 'Guardando...' : 'Guardar'}
+        confirmDisabled={saving || !haulName.trim()}
+      >
+        <div>
+          <Label htmlFor="modalHaulName">Nombre del haul</Label>
+          <Input
+            id="modalHaulName"
+            value={haulName}
+            onChange={(e) => setHaulName(e.target.value)}
+            placeholder="Mi haul de invierno 2024"
+            className="mt-1"
+            autoFocus
+          />
+          <p className="text-sm text-gray-500 mt-2">
+            Este nombre te ayudará a identificar tu haul más tarde
+          </p>
+        </div>
+      </Modal>
     </div>
   )
 }

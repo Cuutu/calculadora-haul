@@ -4,11 +4,18 @@ import User from '@/models/User';
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, username, password } = await request.json();
 
-    if (!name || !email || !password) {
+    if (!name || !username || !password) {
       return NextResponse.json(
         { message: 'Todos los campos son requeridos' },
+        { status: 400 }
+      );
+    }
+
+    if (username.length < 3) {
+      return NextResponse.json(
+        { message: 'El nombre de usuario debe tener al menos 3 caracteres' },
         { status: 400 }
       );
     }
@@ -23,10 +30,10 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ username });
     if (existingUser) {
       return NextResponse.json(
-        { message: 'El usuario ya existe' },
+        { message: 'El nombre de usuario ya existe' },
         { status: 400 }
       );
     }
@@ -34,14 +41,14 @@ export async function POST(request: NextRequest) {
     // Create new user
     const user = new User({
       name,
-      email,
+      username,
       password,
     });
 
     await user.save();
 
     return NextResponse.json(
-      { message: 'Usuario creado exitosamente' },
+      { message: 'Usuario creado exitosamente', user: { id: user._id, username: user.username, name: user.name } },
       { status: 201 }
     );
   } catch (error) {

@@ -10,17 +10,25 @@ import { Label } from '@/components/ui/label';
 
 export default function SignUp() {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
+
+    if (username.length < 3) {
+      setError('El nombre de usuario debe tener al menos 3 caracteres');
+      setIsLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
@@ -42,7 +50,7 @@ export default function SignUp() {
         },
         body: JSON.stringify({
           name,
-          email,
+          username,
           password,
         }),
       });
@@ -50,22 +58,31 @@ export default function SignUp() {
       const data = await response.json();
 
       if (response.ok) {
+        setSuccess('¡Cuenta creada exitosamente! Redirigiendo...');
+        
         // Auto sign in after successful registration
         const result = await signIn('credentials', {
-          email,
+          username,
           password,
           redirect: false,
         });
 
         if (result?.ok) {
-          router.push('/');
-          router.refresh();
+          setTimeout(() => {
+            router.push('/profile');
+            router.refresh();
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            router.push('/auth/signin');
+          }, 1500);
         }
       } else {
         setError(data.message || 'Error al crear la cuenta');
       }
     } catch (error) {
-      setError('Error al crear la cuenta');
+      console.error('Registration error:', error);
+      setError('Error de conexión. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -104,16 +121,17 @@ export default function SignUp() {
               />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Nombre de usuario</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="mt-1"
+                placeholder="ej: cuutu"
               />
             </div>
             <div>
@@ -146,6 +164,10 @@ export default function SignUp() {
 
           {error && (
             <div className="text-red-600 text-sm text-center">{error}</div>
+          )}
+
+          {success && (
+            <div className="text-green-600 text-sm text-center">{success}</div>
           )}
 
           <div>

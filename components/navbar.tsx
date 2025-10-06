@@ -43,7 +43,7 @@ export default function Navbar() {
                   <Button variant="outline">Mis Hauls</Button>
                 </Link>
                 <span className="text-sm text-gray-700">
-                  Hola, {session.user?.name}
+                  @{session.user?.username}
                 </span>
                 <Button
                   variant="outline"
