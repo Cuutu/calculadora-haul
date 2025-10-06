@@ -35,6 +35,7 @@ export interface Haul {
   name: string;
   products: Product[];
   exchangeRates: ExchangeRates;
+  shippingUSD: number;
   totalCost: number;
   totalWeight: number;
   createdAt: Date;

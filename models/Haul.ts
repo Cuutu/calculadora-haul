@@ -6,6 +6,7 @@ export interface IHaul extends Document {
   name: string;
   products: Product[];
   exchangeRates: ExchangeRates;
+  shippingUSD: number;
   totalCost: number;
   totalWeight: number;
   createdAt: Date;
@@ -47,6 +48,11 @@ const HaulSchema = new Schema<IHaul>({
   },
   products: [ProductSchema],
   exchangeRates: ExchangeRatesSchema,
+  shippingUSD: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
   totalCost: {
     type: Number,
     required: true,

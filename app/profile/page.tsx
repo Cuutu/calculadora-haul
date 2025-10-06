@@ -91,7 +91,7 @@ export default function ProfilePage() {
                   ¡Hola, {session.user?.name}! 👋
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  @{session.user?.username || 'usuario'}
+                  @{session.user?.username}
                 </p>
               </div>
               <div className="flex space-x-3">
@@ -120,7 +120,7 @@ export default function ProfilePage() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900">Peso Total</h3>
               <p className="text-3xl font-bold text-purple-600">
-                {hauls.reduce((sum, haul) => sum + haul.totalWeight, 0).toFixed(1)} kg
+                {(hauls.reduce((sum, haul) => sum + haul.totalWeight, 0) * 1000).toFixed(0)} grs
               </p>
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function ProfilePage() {
                         </h3>
                         <div className="mt-2 flex space-x-6 text-sm text-gray-600">
                           <span>Productos: {haul.products.length}</span>
-                          <span>Peso: {haul.totalWeight.toFixed(2)} kg</span>
+                          <span>Peso: {(haul.totalWeight * 1000).toFixed(0)} grs</span>
                           <span>Costo: ${haul.totalCost.toFixed(2)} ARS</span>
                           <span>
                             {new Date(haul.createdAt).toLocaleDateString('es-AR')}

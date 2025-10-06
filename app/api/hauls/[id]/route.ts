@@ -57,7 +57,7 @@ export async function PUT(
       );
     }
 
-    const { name, products, exchangeRates } = await request.json();
+    const { name, products, exchangeRates, shippingUSD } = await request.json();
 
     await connectDB();
 
@@ -71,6 +71,7 @@ export async function PUT(
         name,
         products,
         exchangeRates,
+        shippingUSD: shippingUSD || 0,
       },
       { new: true }
     );

@@ -53,6 +53,7 @@ export default function EditHaulPage() {
         setProducts(data.products);
         setHaulName(data.name);
         setExchangeRates(data.exchangeRates);
+        setShippingUSD(data.shippingUSD || 0);
       } else {
         router.push('/hauls');
       }
@@ -98,6 +99,7 @@ export default function EditHaulPage() {
           name: haulName,
           products,
           exchangeRates,
+          shippingUSD,
         }),
       });
 

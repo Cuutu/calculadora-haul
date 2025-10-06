@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, products, exchangeRates } = await request.json();
+    const { name, products, exchangeRates, shippingUSD } = await request.json();
 
     if (!name || !products || !exchangeRates) {
       return NextResponse.json(
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       name,
       products,
       exchangeRates,
+      shippingUSD: shippingUSD || 0,
     });
 
     await haul.save();
