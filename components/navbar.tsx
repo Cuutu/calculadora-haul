@@ -31,23 +31,20 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              Calculadora Haul
+            <Link href="/">
+              <Button variant="outline">Inicio</Button>
             </Link>
           </div>
           
           <div className="flex items-center space-x-4">
             {session ? (
               <>
-                <Link href="/">
-                  <Button variant="outline">Inicio</Button>
-                </Link>
                 <Link href="/hauls">
                   <Button variant="outline">Mis Hauls</Button>
                 </Link>
                 <Link href="/profile">
                   <span className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer font-medium">
-                    @{session.user?.username}
+                    @{session.user?.username || 'usuario'}
                   </span>
                 </Link>
                 <Button

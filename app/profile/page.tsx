@@ -91,7 +91,7 @@ export default function ProfilePage() {
                   ¡Hola, {session.user?.name}! 👋
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  @{session.user?.username}
+                  @{session.user?.username || 'usuario'}
                 </p>
               </div>
               <div className="flex space-x-3">
@@ -162,6 +162,11 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
+                        <Link href={`/hauls/${haul._id}/edit`}>
+                          <Button variant="outline" size="sm">
+                            Editar
+                          </Button>
+                        </Link>
                         <Button
                           variant="outline"
                           size="sm"

@@ -118,9 +118,9 @@ export default function HaulsPage() {
                     </p>
                   </div>
                   <div className="mt-4 flex space-x-2">
-                    <Link href={`/hauls/${haul._id}`}>
+                    <Link href={`/hauls/${haul._id}/edit`}>
                       <Button variant="outline" size="sm">
-                        Ver
+                        Editar
                       </Button>
                     </Link>
                     <Button
