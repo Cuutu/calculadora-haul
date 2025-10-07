@@ -4,7 +4,14 @@ import User from '@/models/User';
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, username, password } = await request.json();
+    const body = await request.json();
+    const rawName = (body?.name ?? '').toString();
+    const rawUsername = (body?.username ?? '').toString();
+    const rawPassword = (body?.password ?? '').toString();
+
+    const name = rawName.trim();
+    const username = rawUsername.trim().toLowerCase();
+    const password = rawPassword.trim();
 
     if (!name || !username || !password) {
       return NextResponse.json(
@@ -16,6 +23,15 @@ export async function POST(request: NextRequest) {
     if (username.length < 3) {
       return NextResponse.json(
         { message: 'El nombre de usuario debe tener al menos 3 caracteres' },
+        { status: 400 }
+      );
+    }
+
+    // Solo letras minúsculas, números y guion bajo. Sin espacios ni acentos.
+    const usernameRegex = /^[a-z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      return NextResponse.json(
+        { message: 'El nombre de usuario solo puede contener letras (a-z), números y _' },
         { status: 400 }
       );
     }
@@ -39,11 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user
-    const user = new User({
-      name,
-      username,
-      password,
-    });
+    const user = new User({ name, username, password });
 
     await user.save();
 

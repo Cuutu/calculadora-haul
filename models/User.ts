@@ -18,6 +18,7 @@ const UserSchema = new Schema<IUser>({
     lowercase: true,
     trim: true,
     minlength: [3, 'Username must be at least 3 characters'],
+    match: [/^[a-z0-9_]+$/, 'Username may only contain a-z, 0-9 and _'],
   },
   name: {
     type: String,
