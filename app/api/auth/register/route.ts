@@ -68,13 +68,10 @@ export async function POST(request: NextRequest) {
     // Manejo específico para errores de índice duplicado de Mongo (11000)
     // Esto puede ocurrir si existe un índice único en un campo como `username` o `email`.
     if (typeof error === 'object' && error && (error as any).code === 11000) {
-      const keyPattern = (error as any).keyPattern || {};
-      const conflictField = Object.keys(keyPattern)[0] || 'campo';
-      const message = conflictField === 'username'
-        ? 'El nombre de usuario ya existe'
-        : `El ${conflictField} ya existe`;
+      // Independientemente del campo involucrado, retornamos el mensaje de username
+      // porque el registro solo usa nombre de usuario como identificador único.
       return NextResponse.json(
-        { message },
+        { message: 'El nombre de usuario ya existe' },
         { status: 400 }
       );
     }
