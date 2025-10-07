@@ -8,7 +8,7 @@ import Providers from "@/components/providers"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Calculadora de Importación Argentina",
+  title: "📦 Calculadora",
   description: "Calcula el costo real de traer ropa desde el exterior a Argentina",
   generator: "v0.app",
 }
