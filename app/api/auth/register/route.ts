@@ -53,6 +53,20 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Registration error:', error);
+    // Manejo específico para errores de índice duplicado de Mongo (11000)
+    // Esto puede ocurrir si existe un índice único en un campo como `username` o `email`.
+    if (typeof error === 'object' && error && (error as any).code === 11000) {
+      const keyPattern = (error as any).keyPattern || {};
+      const conflictField = Object.keys(keyPattern)[0] || 'campo';
+      const message = conflictField === 'username'
+        ? 'El nombre de usuario ya existe'
+        : `El ${conflictField} ya existe`;
+      return NextResponse.json(
+        { message },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }
