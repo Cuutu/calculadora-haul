@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          await connectDB();
+          await connectDB(); 
           
           const user = await User.findOne({ username: credentials.username });
           
