@@ -28,18 +28,52 @@ export function parseMultipleProducts(text: string): ExtractedProductData[] {
   const normalizedText = text.replace(/\s+/g, ' ').trim()
   
   // Buscar todas las ocurrencias de "Price:" que indican un producto
-  const pricePattern = /price[:\s]*¥?\s*(\d+[.,]\d+|\d+)/gi
-  const priceMatches = Array.from(normalizedText.matchAll(pricePattern))
+  // Buscar primero precios con decimales explícitos, luego enteros
+  const pricePatternWithDecimal = /price[:\s]*¥?\s*(\d+)[.,](\d{1,2})/gi
+  const pricePatternInteger = /price[:\s]*¥?\s*(\d+)(?![.,\d])/gi
   
-  if (priceMatches.length === 0) {
+  const decimalMatches = Array.from(normalizedText.matchAll(pricePatternWithDecimal))
+  const integerMatches = Array.from(normalizedText.matchAll(pricePatternInteger))
+  
+  // Combinar matches, priorizando los que tienen decimales
+  const allPriceMatches: Array<{ index: number; priceStr: string; hasDecimal: boolean }> = []
+  
+  for (const match of decimalMatches) {
+    const priceStr = `${match[1]}.${match[2]}`
+    allPriceMatches.push({
+      index: match.index || 0,
+      priceStr: priceStr,
+      hasDecimal: true
+    })
+  }
+  
+  // Agregar enteros solo si no hay un decimal cerca
+  for (const match of integerMatches) {
+    const index = match.index || 0
+    const priceStr = match[1] || ''
+    // Verificar que no haya un decimal match muy cerca (dentro de 20 caracteres)
+    const hasNearbyDecimal = allPriceMatches.some(dm => Math.abs(dm.index - index) < 20)
+    if (!hasNearbyDecimal) {
+      allPriceMatches.push({
+        index: index,
+        priceStr: priceStr,
+        hasDecimal: false
+      })
+    }
+  }
+  
+  // Ordenar por índice
+  allPriceMatches.sort((a, b) => a.index - b.index)
+  
+  if (allPriceMatches.length === 0) {
     return []
   }
   
   // Para cada precio encontrado, buscar los demás datos en un bloque cercano
-  for (let i = 0; i < priceMatches.length; i++) {
-    const priceMatch = priceMatches[i]
-    const priceIndex = priceMatch.index || 0
-    const priceStr = priceMatch[1] || ''
+  for (let i = 0; i < allPriceMatches.length; i++) {
+    const priceMatch = allPriceMatches[i]
+    const priceIndex = priceMatch.index
+    const priceStr = priceMatch.priceStr
     const price = parseFloat(priceStr.replace(',', '.'))
     
     if (price <= 0 || price >= 10000) {
@@ -52,8 +86,8 @@ export function parseMultipleProducts(text: string): ExtractedProductData[] {
     let endIndex = normalizedText.length
     
     // Buscar el siguiente precio
-    if (i < priceMatches.length - 1) {
-      const nextPriceIndex = priceMatches[i + 1].index || normalizedText.length
+    if (i < allPriceMatches.length - 1) {
+      const nextPriceIndex = allPriceMatches[i + 1].index
       endIndex = Math.min(endIndex, nextPriceIndex)
     } else {
       // Si es el último, tomar hasta 800 caracteres después
