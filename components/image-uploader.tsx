@@ -3,6 +3,8 @@
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, Loader2, X } from "lucide-react"
+import { createWorker } from "tesseract.js"
+import { parseProductText } from "@/lib/image-parser"
 import type { Product } from "@/types"
 
 interface ImageUploaderProps {
@@ -12,6 +14,7 @@ interface ImageUploaderProps {
 
 export function ImageUploader({ onProductExtracted, onFreightExtracted }: ImageUploaderProps) {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [processingProgress, setProcessingProgress] = useState(0)
   const [preview, setPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -42,34 +45,46 @@ export function ImageUploader({ onProductExtracted, onFreightExtracted }: ImageU
     }
     reader.readAsDataURL(file)
 
-    // Procesar imagen
+    // Procesar imagen con Tesseract.js (gratuito, funciona en el cliente)
     try {
-      const formData = new FormData()
-      formData.append('image', file)
-
-      const response = await fetch('/api/process-image', {
-        method: 'POST',
-        body: formData,
+      // Crear worker de Tesseract
+      const worker = await createWorker('eng', 1, {
+        logger: (m) => {
+          // Mostrar progreso al usuario
+          if (m.status === 'recognizing text') {
+            const progress = Math.round(m.progress * 100)
+            setProcessingProgress(progress)
+          }
+        },
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al procesar la imagen')
-      }
+      // Realizar OCR
+      const { data: { text } } = await worker.recognize(file)
+      
+      // Terminar el worker
+      await worker.terminate()
+      
+      setProcessingProgress(100)
 
-      const data = await response.json()
+      // Parsear el texto extraído
+      const extractedData = parseProductText(text)
+      
+      // Log del texto extraído para debugging (opcional)
+      if (extractedData.precioYuanes === 0 && extractedData.freight === 0) {
+        console.log('Texto extraído para debugging:', text.substring(0, 500))
+      }
 
       // Llamar al callback con los datos extraídos
       onProductExtracted({
-        producto: data.producto || '',
-        precioYuanes: data.precioYuanes || 0,
-        cantidad: data.cantidad || 1,
-        peso: data.peso || 0,
+        producto: extractedData.producto || '',
+        precioYuanes: extractedData.precioYuanes || 0,
+        cantidad: extractedData.cantidad || 1,
+        peso: extractedData.peso || 0,
       })
 
       // Si hay freight, también lo pasamos
-      if (onFreightExtracted && data.freight) {
-        onFreightExtracted(data.freight)
+      if (onFreightExtracted && extractedData.freight) {
+        onFreightExtracted(extractedData.freight)
       }
 
       // Limpiar el input
@@ -117,7 +132,7 @@ export function ImageUploader({ onProductExtracted, onFreightExtracted }: ImageU
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Procesando...
+                  Procesando... {processingProgress > 0 && `${processingProgress}%`}
                 </>
               ) : (
                 <>
@@ -156,7 +171,7 @@ export function ImageUploader({ onProductExtracted, onFreightExtracted }: ImageU
       )}
 
       <p className="text-xs text-muted-foreground">
-        📸 Sube una imagen del producto para extraer automáticamente: precio, freight, cantidad y peso
+        📸 Sube una imagen del producto para extraer automáticamente: precio, freight, cantidad y peso (OCR gratuito)
       </p>
     </div>
   )
