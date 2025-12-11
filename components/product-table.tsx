@@ -10,10 +10,9 @@ interface ProductTableProps {
   setProducts: (products: Product[]) => void
   exchangeRates: ExchangeRates | null
   yuanToUSD: number
-  setShippingUSD?: (value: number) => void
 }
 
-export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, setShippingUSD }: ProductTableProps) {
+export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD }: ProductTableProps) {
   const addProduct = () => {
     const newProduct: Product = {
       id: Math.random().toString(36).substr(2, 9),
@@ -21,6 +20,7 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
       producto: "",
       peso: 0,
       precioYuanes: 0,
+      freightYuanes: 0,
       precioUSD: 0,
       precioARS: 0,
       link: "",
@@ -36,19 +36,12 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
       producto: extractedData.producto || "",
       peso: extractedData.peso || 0,
       precioYuanes: extractedData.precioYuanes || 0,
+      freightYuanes: extractedData.freightYuanes || 0,
       precioUSD: (extractedData.precioYuanes || 0) * yuanToUSD,
       precioARS: (extractedData.precioYuanes || 0) * yuanToUSD * (exchangeRates?.cripto.venta || 0),
       link: "",
     }
     setProducts([...products, newProduct])
-  }
-
-  const handleFreightExtracted = (freight: number) => {
-    // Convertir freight de yuanes a USD y actualizar shipping
-    if (setShippingUSD) {
-      const freightUSD = freight * yuanToUSD
-      setShippingUSD(freightUSD)
-    }
   }
 
   const removeProduct = (id: string) => {
@@ -78,6 +71,7 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
   const totalUnidades = products.reduce((sum, p) => sum + p.cantidad, 0)
   const totalPeso = products.reduce((sum, p) => sum + p.peso * p.cantidad, 0)
   const totalYuanes = products.reduce((sum, p) => sum + p.precioYuanes * p.cantidad, 0)
+  const totalFreightYuanes = products.reduce((sum, p) => sum + (p.freightYuanes || 0) * p.cantidad, 0)
   const totalUSD = products.reduce((sum, p) => sum + p.precioUSD * p.cantidad, 0)
   const totalARS = products.reduce((sum, p) => sum + p.precioARS * p.cantidad, 0)
 
@@ -88,7 +82,6 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
         <div className="bg-card text-card-foreground p-4 rounded-lg border-2 border-primary-foreground/20">
           <ImageUploader 
             onProductExtracted={handleProductExtracted}
-            onFreightExtracted={handleFreightExtracted}
           />
         </div>
       </div>
@@ -101,6 +94,7 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
               <th className="p-3 text-left font-bold border-r-2 border-primary">PRODUCTO</th>
               <th className="p-3 text-left font-bold border-r-2 border-primary">PESO (GR)</th>
               <th className="p-3 text-left font-bold border-r-2 border-primary">PRECIO EN YUANES</th>
+              <th className="p-3 text-left font-bold border-r-2 border-primary">FREIGHT (¥)</th>
               <th className="p-3 text-left font-bold border-r-2 border-primary">PRECIO USD</th>
               <th className="p-3 text-left font-bold border-r-2 border-primary">PRECIO ARS</th>
               <th className="p-3 text-left font-bold border-r-2 border-primary">LINKS (Opcional) </th>
@@ -150,6 +144,17 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
                   />
                 </td>
                 <td className="p-2 border-r-2 border-primary">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={product.freightYuanes || ""}
+                    onChange={(e) => updateProduct(product.id, "freightYuanes", Number(e.target.value))}
+                    className="w-28 text-center font-mono"
+                    placeholder="¥0.00"
+                  />
+                </td>
+                <td className="p-2 border-r-2 border-primary">
                   <div className="text-center font-mono font-semibold">${product.precioUSD.toFixed(2)}</div>
                 </td>
                 <td className="p-2 border-r-2 border-primary">
@@ -188,6 +193,7 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
               <td className="p-3 text-center border-r-2 border-primary">TOTAL DE UNIDADES</td>
               <td className="p-3 text-center border-r-2 border-primary">PESO TOTAL (GR)</td>
               <td className="p-3 text-center border-r-2 border-primary">PRECIO EN YUANES</td>
+              <td className="p-3 text-center border-r-2 border-primary">FREIGHT TOTAL (¥)</td>
               <td className="p-3 text-center border-r-2 border-primary">PRECIO USD</td>
               <td className="p-3 text-center border-r-2 border-primary" colSpan={3}>
                 PRECIO ARS
@@ -198,6 +204,7 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, 
               <td className="p-3 text-center text-xl border-r-2 border-background">{totalUnidades}</td>
               <td className="p-3 text-center text-xl border-r-2 border-background">{totalPeso.toFixed(0)}</td>
               <td className="p-3 text-center text-xl border-r-2 border-background">¥{totalYuanes.toFixed(2)}</td>
+              <td className="p-3 text-center text-xl border-r-2 border-background">¥{totalFreightYuanes.toFixed(2)}</td>
               <td className="p-3 text-center text-xl border-r-2 border-background">${totalUSD.toFixed(2)}</td>
               <td className="p-3 text-center text-xl border-r-2 border-background" colSpan={3}>
                 ${totalARS.toFixed(2)}

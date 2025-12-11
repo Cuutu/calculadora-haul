@@ -24,6 +24,7 @@ export default function Home() {
       producto: "",
       peso: 0,
       precioYuanes: 0,
+      freightYuanes: 0,
       precioUSD: 0,
       precioARS: 0,
       link: "",
@@ -123,7 +124,6 @@ export default function Home() {
           setProducts={setProducts}
           exchangeRates={exchangeRates}
           yuanToUSD={YUAN_TO_USD}
-          setShippingUSD={setShippingUSD}
         />
 
         <ShippingSection shippingUSD={shippingUSD} setShippingUSD={setShippingUSD} exchangeRates={exchangeRates} />

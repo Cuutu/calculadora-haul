@@ -161,7 +161,6 @@ export default function EditHaulPage() {
             setProducts={setProducts}
             exchangeRates={exchangeRates}
             yuanToUSD={YUAN_TO_USD}
-            setShippingUSD={setShippingUSD}
           />
 
           <ShippingSection shippingUSD={shippingUSD} setShippingUSD={setShippingUSD} exchangeRates={exchangeRates} />

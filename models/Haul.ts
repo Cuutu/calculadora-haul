@@ -19,6 +19,7 @@ const ProductSchema = new Schema({
   producto: { type: String, required: true },
   peso: { type: Number, required: true },
   precioYuanes: { type: Number, required: true },
+  freightYuanes: { type: Number, required: false, default: 0 },
   precioUSD: { type: Number, required: true },
   precioARS: { type: Number, required: true },
   link: { type: String, required: false, default: '' },

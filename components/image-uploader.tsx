@@ -9,10 +9,9 @@ import type { Product } from "@/types"
 
 interface ImageUploaderProps {
   onProductExtracted: (product: Partial<Product>) => void
-  onFreightExtracted?: (freight: number) => void
 }
 
-export function ImageUploader({ onProductExtracted, onFreightExtracted }: ImageUploaderProps) {
+export function ImageUploader({ onProductExtracted }: ImageUploaderProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const [preview, setPreview] = useState<string | null>(null)
@@ -74,18 +73,14 @@ export function ImageUploader({ onProductExtracted, onFreightExtracted }: ImageU
         console.log('Texto extraído para debugging:', text.substring(0, 500))
       }
 
-      // Llamar al callback con los datos extraídos
+      // Llamar al callback con los datos extraídos (incluyendo freight)
       onProductExtracted({
         producto: extractedData.producto || '',
         precioYuanes: extractedData.precioYuanes || 0,
+        freightYuanes: extractedData.freight || 0,
         cantidad: extractedData.cantidad || 1,
         peso: extractedData.peso || 0,
       })
-
-      // Si hay freight, también lo pasamos
-      if (onFreightExtracted && extractedData.freight) {
-        onFreightExtracted(extractedData.freight)
-      }
 
       // Limpiar el input
       if (fileInputRef.current) {

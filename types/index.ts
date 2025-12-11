@@ -4,6 +4,7 @@ export interface Product {
   producto: string
   peso: number
   precioYuanes: number
+  freightYuanes: number
   precioUSD: number
   precioARS: number
   link: string
