@@ -67,12 +67,11 @@ export function ImageUploader({ onProductExtracted, onProductsExtracted }: Image
       setProcessingProgress(100)
 
       // Parsear el texto extraído - puede haber múltiples productos
+      console.log('=== INICIO PROCESAMIENTO OCR ===')
+      console.log('Texto completo extraído:', text)
       const extractedProducts = parseMultipleProducts(text)
-      
-      // Log del texto extraído para debugging (opcional)
-      if (extractedProducts.length === 0) {
-        console.log('Texto extraído para debugging:', text.substring(0, 1000))
-      }
+      console.log('Productos extraídos:', extractedProducts)
+      console.log('=== FIN PROCESAMIENTO OCR ===')
 
       // Si hay múltiples productos, usar onProductsExtracted si está disponible
       if (extractedProducts.length > 1 && onProductsExtracted) {
