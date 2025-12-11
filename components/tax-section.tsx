@@ -32,7 +32,7 @@ export function TaxSection({
 
   const impuestosARS = impuestosUSD * (exchangeRates?.oficial.venta || 0)
 
-  const tasaCorreo = 4900 // Fixed value as shown in the image
+  const tasaCorreo = 7300 // Fixed value as shown in the image
   const tasaCorreoUSD = tasaCorreo / (exchangeRates?.oficial.venta || 1)
 
   const haulTotalUSD = totalProductsUSD + shippingUSD + impuestosUSD + tasaCorreoUSD
