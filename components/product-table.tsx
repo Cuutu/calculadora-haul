@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Trash2, Plus } from "lucide-react"
+import { ImageUploader } from "@/components/image-uploader"
 import type { Product, ExchangeRates } from "@/types"
 
 interface ProductTableProps {
@@ -9,9 +10,10 @@ interface ProductTableProps {
   setProducts: (products: Product[]) => void
   exchangeRates: ExchangeRates | null
   yuanToUSD: number
+  setShippingUSD?: (value: number) => void
 }
 
-export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD }: ProductTableProps) {
+export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD, setShippingUSD }: ProductTableProps) {
   const addProduct = () => {
     const newProduct: Product = {
       id: Math.random().toString(36).substr(2, 9),
@@ -24,6 +26,29 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD }
       link: "",
     }
     setProducts([...products, newProduct])
+  }
+
+  const handleProductExtracted = (extractedData: Partial<Product>) => {
+    // Crear un nuevo producto con los datos extraídos
+    const newProduct: Product = {
+      id: Math.random().toString(36).substr(2, 9),
+      cantidad: extractedData.cantidad || 1,
+      producto: extractedData.producto || "",
+      peso: extractedData.peso || 0,
+      precioYuanes: extractedData.precioYuanes || 0,
+      precioUSD: (extractedData.precioYuanes || 0) * yuanToUSD,
+      precioARS: (extractedData.precioYuanes || 0) * yuanToUSD * (exchangeRates?.cripto.venta || 0),
+      link: "",
+    }
+    setProducts([...products, newProduct])
+  }
+
+  const handleFreightExtracted = (freight: number) => {
+    // Convertir freight de yuanes a USD y actualizar shipping
+    if (setShippingUSD) {
+      const freightUSD = freight * yuanToUSD
+      setShippingUSD(freightUSD)
+    }
   }
 
   const removeProduct = (id: string) => {
@@ -59,7 +84,13 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD }
   return (
     <div className="space-y-4">
       <div className="bg-primary text-primary-foreground p-4 rounded-lg">
-        <h2 className="text-xl font-bold text-center">HAUL (INGRESE MANUALMENTE EL PRECIO EN YUANES)</h2>
+        <h2 className="text-xl font-bold text-center mb-4">HAUL (INGRESE MANUALMENTE EL PRECIO EN YUANES)</h2>
+        <div className="bg-card text-card-foreground p-4 rounded-lg border-2 border-primary-foreground/20">
+          <ImageUploader 
+            onProductExtracted={handleProductExtracted}
+            onFreightExtracted={handleFreightExtracted}
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto border-4 border-primary rounded-lg">
