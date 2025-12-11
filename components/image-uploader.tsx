@@ -67,11 +67,7 @@ export function ImageUploader({ onProductExtracted, onProductsExtracted }: Image
       setProcessingProgress(100)
 
       // Parsear el texto extraído - puede haber múltiples productos
-      console.log('=== INICIO PROCESAMIENTO OCR ===')
-      console.log('Texto completo extraído:', text)
       const extractedProducts = parseMultipleProducts(text)
-      console.log('Productos extraídos:', extractedProducts)
-      console.log('=== FIN PROCESAMIENTO OCR ===')
 
       // Si hay múltiples productos, usar onProductsExtracted si está disponible
       if (extractedProducts.length > 1 && onProductsExtracted) {
@@ -179,7 +175,7 @@ export function ImageUploader({ onProductExtracted, onProductsExtracted }: Image
       )}
 
       <p className="text-xs text-muted-foreground">
-        📸 Sube una imagen del producto para extraer automáticamente: precio, freight, cantidad y peso (OCR gratuito)
+        📸 Sube una imagen del producto para extraer automáticamente: precio, envio (freight), cantidad y peso. Si no encuentra algo lo dejará en blanco.
       </p>
     </div>
   )

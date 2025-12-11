@@ -31,10 +31,7 @@ export function parseMultipleProducts(text: string): ExtractedProductData[] {
   const pricePattern = /price[:\s]*¥?\s*(\d+[.,]\d+|\d+)/gi
   const priceMatches = Array.from(normalizedText.matchAll(pricePattern))
   
-  console.log('Precios encontrados:', priceMatches.length, priceMatches.map(m => ({ index: m.index, price: m[1] })))
-  
   if (priceMatches.length === 0) {
-    console.log('No se encontraron precios. Texto completo:', normalizedText.substring(0, 500))
     return []
   }
   
@@ -46,7 +43,6 @@ export function parseMultipleProducts(text: string): ExtractedProductData[] {
     const price = parseFloat(priceStr.replace(',', '.'))
     
     if (price <= 0 || price >= 10000) {
-      console.log('Precio inválido:', price)
       continue
     }
     
@@ -66,25 +62,17 @@ export function parseMultipleProducts(text: string): ExtractedProductData[] {
     
     const blockText = normalizedText.substring(startIndex, endIndex)
     
-    console.log(`\nProducto ${i + 1}:`)
-    console.log('Bloque de texto:', blockText.substring(0, 200))
-    console.log('Precio encontrado:', price)
-    
     // Extraer datos del bloque
     const product = extractProductFromBlock(blockText, price)
     
     if (product) {
-      console.log('Producto extraído:', product)
       // Solo agregar si no es duplicado exacto
       if (!isDuplicate(product, products)) {
         products.push(product)
-      } else {
-        console.log('Producto duplicado, omitido')
       }
     }
   }
   
-  console.log(`\nTotal de productos extraídos: ${products.length}`)
   return products
 }
 
@@ -114,7 +102,6 @@ function extractProductFromBlock(blockText: string, knownPrice: number): Extract
       const freight = parseFloat(freightStr.replace(',', '.'))
       if (freight >= 0 && freight < 10000) {
         result.freight = freight
-        console.log('Freight encontrado:', freight)
         break
       }
     }
@@ -136,7 +123,6 @@ function extractProductFromBlock(blockText: string, knownPrice: number): Extract
       const qty = parseInt(match[1] || '1')
       if (qty > 0 && qty < 1000) {
         result.cantidad = qty
-        console.log('Quantity encontrada:', qty, 'del match:', match[0])
         break
       }
     }
@@ -151,7 +137,6 @@ function extractProductFromBlock(blockText: string, knownPrice: number): Extract
       const qty = parseInt(quanMatch[1])
       if (qty > 0 && qty < 1000) {
         result.cantidad = qty
-        console.log('Quantity encontrada (patrón alternativo con espacio):', qty)
       }
     }
   }
@@ -171,7 +156,6 @@ function extractProductFromBlock(blockText: string, knownPrice: number): Extract
       const weight = parseFloat(weightStr.replace(',', '.'))
       if (weight > 0 && weight < 100000) {
         result.peso = weight
-        console.log('Weight encontrado:', weight)
         break
       }
     }
