@@ -30,18 +30,50 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD }
 
   const handleProductExtracted = (extractedData: Partial<Product>) => {
     // Crear un nuevo producto con los datos extraídos
+    const precioYuanes = extractedData.precioYuanes || 0
+    const freightYuanes = extractedData.freightYuanes || 0
+    const precioUSD = precioYuanes * yuanToUSD
+    const freightUSD = freightYuanes * yuanToUSD
+    const precioTotalUSD = precioUSD + freightUSD
+    const precioTotalARS = precioTotalUSD * (exchangeRates?.cripto.venta || 0)
+    
     const newProduct: Product = {
       id: Math.random().toString(36).substr(2, 9),
       cantidad: extractedData.cantidad || 1,
       producto: extractedData.producto || "",
       peso: extractedData.peso || 0,
-      precioYuanes: extractedData.precioYuanes || 0,
-      freightYuanes: extractedData.freightYuanes || 0,
-      precioUSD: (extractedData.precioYuanes || 0) * yuanToUSD,
-      precioARS: (extractedData.precioYuanes || 0) * yuanToUSD * (exchangeRates?.cripto.venta || 0),
+      precioYuanes: precioYuanes,
+      freightYuanes: freightYuanes,
+      precioUSD: precioTotalUSD,
+      precioARS: precioTotalARS,
       link: "",
     }
     setProducts([...products, newProduct])
+  }
+
+  const handleProductsExtracted = (extractedProducts: Partial<Product>[]) => {
+    // Crear múltiples productos con los datos extraídos
+    const newProducts: Product[] = extractedProducts.map(extractedData => {
+      const precioYuanes = extractedData.precioYuanes || 0
+      const freightYuanes = extractedData.freightYuanes || 0
+      const precioUSD = precioYuanes * yuanToUSD
+      const freightUSD = freightYuanes * yuanToUSD
+      const precioTotalUSD = precioUSD + freightUSD
+      const precioTotalARS = precioTotalUSD * (exchangeRates?.cripto.venta || 0)
+      
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        cantidad: extractedData.cantidad || 1,
+        producto: extractedData.producto || "",
+        peso: extractedData.peso || 0,
+        precioYuanes: precioYuanes,
+        freightYuanes: freightYuanes,
+        precioUSD: precioTotalUSD,
+        precioARS: precioTotalARS,
+        link: "",
+      }
+    })
+    setProducts([...products, ...newProducts])
   }
 
   const removeProduct = (id: string) => {
@@ -54,10 +86,13 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD }
         if (p.id === id) {
           const updated = { ...p, [field]: value }
 
-          // Auto-calculate USD and ARS when Yuanes changes
-          if (field === "precioYuanes") {
-            const yuanes = Number(value)
-            updated.precioUSD = yuanes * yuanToUSD
+          // Auto-calculate USD and ARS when Yuanes or Freight changes
+          if (field === "precioYuanes" || field === "freightYuanes") {
+            const precioYuanes = field === "precioYuanes" ? Number(value) : updated.precioYuanes
+            const freightYuanes = field === "freightYuanes" ? Number(value) : updated.freightYuanes
+            const precioUSD = precioYuanes * yuanToUSD
+            const freightUSD = freightYuanes * yuanToUSD
+            updated.precioUSD = precioUSD + freightUSD
             updated.precioARS = updated.precioUSD * (exchangeRates?.cripto.venta || 0)
           }
 
@@ -82,6 +117,7 @@ export function ProductTable({ products, setProducts, exchangeRates, yuanToUSD }
         <div className="bg-card text-card-foreground p-4 rounded-lg border-2 border-primary-foreground/20">
           <ImageUploader 
             onProductExtracted={handleProductExtracted}
+            onProductsExtracted={handleProductsExtracted}
           />
         </div>
       </div>

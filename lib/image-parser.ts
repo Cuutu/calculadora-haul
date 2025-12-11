@@ -5,6 +5,8 @@
  * - Freight (¥)
  * - Cantidad
  * - Peso (en gramos)
+ * 
+ * Soporta múltiples productos en una sola imagen
  */
 
 export interface ExtractedProductData {
@@ -15,7 +17,10 @@ export interface ExtractedProductData {
   peso: number
 }
 
-export function parseProductText(text: string): ExtractedProductData {
+/**
+ * Extrae un solo producto del texto
+ */
+function parseSingleProduct(text: string, startIndex: number = 0): ExtractedProductData | null {
   const result: ExtractedProductData = {
     producto: '',
     precioYuanes: 0,
@@ -24,68 +29,49 @@ export function parseProductText(text: string): ExtractedProductData {
     peso: 0,
   }
 
-  // Normalizar el texto: convertir a minúsculas y limpiar espacios
-  const normalizedText = text.toLowerCase().replace(/\s+/g, ' ')
-
-  // Extraer precio en yuanes
-  // Buscar patrones como: ¥3.80, ¥ 3.80, price: ¥3.80, price ¥3.80, $0.54 (USD)
+  // Buscar precio en yuanes - patrones como: Price: ¥3.80, ¥3.80, price ¥3.80
   const pricePatterns = [
-    /(?:price|precio)[:\s]*¥?\s*(\d+\.?\d*)/i,
-    /¥\s*(\d+\.?\d*)/,
-    /(\d+\.?\d*)\s*¥/,
-    // También buscar precios en USD y convertir (aproximado: 1 USD = 7.2 CNY)
-    /(?:price|precio)[:\s]*\$?\s*(\d+\.?\d*)\s*\(?\$0\.\d+\)?/i,
+    /(?:price|precio)[:\s]*¥?\s*(\d+[.,]?\d*)/i,
+    /¥\s*(\d+[.,]?\d*)/,
+    /(\d+[.,]?\d*)\s*¥/,
   ]
 
   for (const pattern of pricePatterns) {
-    const match = text.match(pattern)
+    const match = text.substring(startIndex).match(pattern)
     if (match && match[1]) {
-      const price = parseFloat(match[1])
+      const price = parseFloat(match[1].replace(',', '.'))
       if (price > 0 && price < 10000) {
         result.precioYuanes = price
         break
       }
     }
   }
-  
-  // Si no encontramos precio con ¥, buscar el primer número decimal que parezca un precio
-  if (result.precioYuanes === 0) {
-    const decimalPriceMatch = text.match(/(\d+\.\d{2})/)
-    if (decimalPriceMatch) {
-      const potentialPrice = parseFloat(decimalPriceMatch[1])
-      if (potentialPrice > 0.1 && potentialPrice < 1000) {
-        result.precioYuanes = potentialPrice
-      }
-    }
-  }
 
-  // Extraer freight
-  // Buscar patrones como: freight: ¥6.00, freight ¥6.00, freight: 6.00
+  // Buscar freight - patrones como: Freight: ¥6.00, freight ¥6.00
   const freightPatterns = [
-    /(?:freight|env[ií]o|shipping)[:\s]*¥?\s*(\d+\.?\d*)/i,
-    /freight[:\s]*(\d+\.?\d*)/i,
+    /(?:freight|env[ií]o|shipping)[:\s]*¥?\s*(\d+[.,]?\d*)/i,
+    /freight[:\s]*(\d+[.,]?\d*)/i,
   ]
 
   for (const pattern of freightPatterns) {
-    const match = text.match(pattern)
+    const match = text.substring(startIndex).match(pattern)
     if (match && match[1]) {
-      const freight = parseFloat(match[1])
-      if (freight > 0 && freight < 10000) {
+      const freight = parseFloat(match[1].replace(',', '.'))
+      if (freight >= 0 && freight < 10000) {
         result.freight = freight
         break
       }
     }
   }
 
-  // Extraer cantidad
-  // Buscar patrones como: quantity: 3, quantity 3, qty: 3, cantidad: 3
+  // Buscar cantidad - patrones como: Quantity: 3, quantity 3, qty: 3
   const quantityPatterns = [
     /(?:quantity|qty|cantidad)[:\s]*(\d+)/i,
-    /(?:x|×)\s*(\d+)/, // Formato "x3" o "×3"
+    /(?:x|×)\s*(\d+)/,
   ]
 
   for (const pattern of quantityPatterns) {
-    const match = text.match(pattern)
+    const match = text.substring(startIndex).match(pattern)
     if (match && match[1]) {
       const qty = parseInt(match[1])
       if (qty > 0 && qty < 1000) {
@@ -95,17 +81,16 @@ export function parseProductText(text: string): ExtractedProductData {
     }
   }
 
-  // Extraer peso en gramos
-  // Buscar patrones como: weight: 33g, weight 33g, peso: 33g, 33g, 33 g
+  // Buscar peso en gramos - patrones como: Weight: 33g, weight 33g, 33g
   const weightPatterns = [
-    /(?:weight|peso)[:\s]*(\d+\.?\d*)\s*g/i,
-    /(\d+\.?\d*)\s*g(?:ram)?/i,
+    /(?:weight|peso)[:\s]*(\d+[.,]?\d*)\s*g/i,
+    /(\d+[.,]?\d*)\s*g(?:ram)?/i,
   ]
 
   for (const pattern of weightPatterns) {
-    const match = text.match(pattern)
+    const match = text.substring(startIndex).match(pattern)
     if (match && match[1]) {
-      const weight = parseFloat(match[1])
+      const weight = parseFloat(match[1].replace(',', '.'))
       if (weight > 0 && weight < 100000) {
         result.peso = weight
         break
@@ -113,8 +98,7 @@ export function parseProductText(text: string): ExtractedProductData {
     }
   }
 
-  // Extraer nombre del producto
-  // Buscar líneas que contengan descripciones de productos comunes
+  // Buscar nombre del producto - líneas con keywords de producto
   const productKeywords = [
     'stainless steel',
     'food grade',
@@ -129,44 +113,118 @@ export function parseProductText(text: string): ExtractedProductData {
     'valve',
     'grade',
     'steel',
+    'coffee',
+    'powder',
+    'ring',
+    'tamper',
+    'distributor',
   ]
 
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 10)
   
-  // Buscar línea con keywords de producto
+  // Buscar línea con keywords de producto cerca del startIndex
   for (const line of lines) {
-    const lowerLine = line.toLowerCase()
-    // Si la línea contiene palabras clave de producto y no es solo números/precios
-    if (
-      productKeywords.some(keyword => lowerLine.includes(keyword)) &&
-      !/^[\d\s¥$.,:()]+$/.test(line) &&
-      !line.match(/^(price|freight|quantity|weight|order)/i)
-    ) {
-      // Limpiar la línea: remover caracteres especiales al inicio/final
-      let cleaned = line.replace(/^[^\w]+|[^\w]+$/g, '').trim()
-      if (cleaned.length > 5) {
-        result.producto = cleaned.substring(0, 100) // Limitar a 100 caracteres
-        break
-      }
-    }
-  }
-
-  // Si no encontramos producto por keywords, usar la primera línea significativa que no sea un número
-  if (!result.producto && lines.length > 0) {
-    for (const line of lines) {
-      // Saltar líneas que son claramente números, precios, o campos de datos
+    const lineIndex = text.indexOf(line)
+    // Si la línea está cerca del área que estamos procesando
+    if (lineIndex >= startIndex - 200 && lineIndex <= startIndex + 500) {
+      const lowerLine = line.toLowerCase()
       if (
-        line.length > 5 &&
+        productKeywords.some(keyword => lowerLine.includes(keyword)) &&
         !/^[\d\s¥$.,:()]+$/.test(line) &&
-        !line.match(/^(price|freight|quantity|weight|order|sku|color)/i) &&
-        !line.match(/^\d+\.?\d*\s*(g|gram|kg|yuan|¥|\$)/i)
+        !line.match(/^(price|freight|quantity|weight|order)/i)
       ) {
-        result.producto = line.substring(0, 100)
-        break
+        let cleaned = line.replace(/^[^\w]+|[^\w]+$/g, '').trim()
+        if (cleaned.length > 5) {
+          result.producto = cleaned.substring(0, 100)
+          break
+        }
       }
     }
   }
 
-  return result
+  // Si encontramos al menos precio o freight, consideramos que hay un producto
+  if (result.precioYuanes > 0 || result.freight > 0) {
+    // Si no encontramos producto por keywords, usar la primera línea significativa cerca
+    if (!result.producto) {
+      for (const line of lines) {
+        const lineIndex = text.indexOf(line)
+        if (lineIndex >= startIndex - 200 && lineIndex <= startIndex + 500) {
+          if (
+            line.length > 5 &&
+            !/^[\d\s¥$.,:()]+$/.test(line) &&
+            !line.match(/^(price|freight|quantity|weight|order|sku|color)/i) &&
+            !line.match(/^\d+[.,]?\d*\s*(g|gram|kg|yuan|¥|\$)/i)
+          ) {
+            result.producto = line.substring(0, 100)
+            break
+          }
+        }
+      }
+    }
+    return result
+  }
+
+  return null
 }
 
+/**
+ * Extrae múltiples productos del texto OCR
+ */
+export function parseMultipleProducts(text: string): ExtractedProductData[] {
+  const products: ExtractedProductData[] = []
+  
+  // Buscar todas las ocurrencias de "Price:" o "¥" que indiquen un nuevo producto
+  const priceMarkers = [
+    ...Array.from(text.matchAll(/(?:price|precio)[:\s]*¥?\s*(\d+[.,]?\d*)/gi)),
+    ...Array.from(text.matchAll(/¥\s*(\d+[.,]?\d*)/g)),
+  ]
+
+  // Si encontramos múltiples precios, procesar cada uno como un producto separado
+  if (priceMarkers.length > 1) {
+    for (let i = 0; i < priceMarkers.length; i++) {
+      const marker = priceMarkers[i]
+      const startIndex = marker.index || 0
+      
+      // Buscar el siguiente marcador o el final del texto
+      const endIndex = i < priceMarkers.length - 1 
+        ? (priceMarkers[i + 1].index || text.length)
+        : text.length
+      
+      // Extraer el bloque de texto para este producto
+      const productText = text.substring(Math.max(0, startIndex - 300), endIndex)
+      const product = parseSingleProduct(productText, Math.max(0, startIndex - 300))
+      
+      if (product) {
+        products.push(product)
+      }
+    }
+  } else if (priceMarkers.length === 1) {
+    // Solo un producto
+    const product = parseSingleProduct(text, 0)
+    if (product) {
+      products.push(product)
+    }
+  } else {
+    // Intentar parsear como un solo producto sin marcadores claros
+    const product = parseSingleProduct(text, 0)
+    if (product && (product.precioYuanes > 0 || product.freight > 0)) {
+      products.push(product)
+    }
+  }
+
+  return products
+}
+
+/**
+ * Función legacy para compatibilidad - extrae un solo producto
+ */
+export function parseProductText(text: string): ExtractedProductData {
+  const products = parseMultipleProducts(text)
+  return products.length > 0 ? products[0] : {
+    producto: '',
+    precioYuanes: 0,
+    freight: 0,
+    cantidad: 1,
+    peso: 0,
+  }
+}

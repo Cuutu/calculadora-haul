@@ -4,14 +4,15 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, Loader2, X } from "lucide-react"
 import { createWorker } from "tesseract.js"
-import { parseProductText } from "@/lib/image-parser"
+import { parseMultipleProducts } from "@/lib/image-parser"
 import type { Product } from "@/types"
 
 interface ImageUploaderProps {
   onProductExtracted: (product: Partial<Product>) => void
+  onProductsExtracted?: (products: Partial<Product>[]) => void
 }
 
-export function ImageUploader({ onProductExtracted }: ImageUploaderProps) {
+export function ImageUploader({ onProductExtracted, onProductsExtracted }: ImageUploaderProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const [preview, setPreview] = useState<string | null>(null)
@@ -65,22 +66,35 @@ export function ImageUploader({ onProductExtracted }: ImageUploaderProps) {
       
       setProcessingProgress(100)
 
-      // Parsear el texto extraído
-      const extractedData = parseProductText(text)
+      // Parsear el texto extraído - puede haber múltiples productos
+      const extractedProducts = parseMultipleProducts(text)
       
       // Log del texto extraído para debugging (opcional)
-      if (extractedData.precioYuanes === 0 && extractedData.freight === 0) {
-        console.log('Texto extraído para debugging:', text.substring(0, 500))
+      if (extractedProducts.length === 0) {
+        console.log('Texto extraído para debugging:', text.substring(0, 1000))
       }
 
-      // Llamar al callback con los datos extraídos (incluyendo freight)
-      onProductExtracted({
-        producto: extractedData.producto || '',
-        precioYuanes: extractedData.precioYuanes || 0,
-        freightYuanes: extractedData.freight || 0,
-        cantidad: extractedData.cantidad || 1,
-        peso: extractedData.peso || 0,
-      })
+      // Si hay múltiples productos, usar onProductsExtracted si está disponible
+      if (extractedProducts.length > 1 && onProductsExtracted) {
+        const products = extractedProducts.map(extracted => ({
+          producto: extracted.producto || '',
+          precioYuanes: extracted.precioYuanes || 0,
+          freightYuanes: extracted.freight || 0,
+          cantidad: extracted.cantidad || 1,
+          peso: extracted.peso || 0,
+        }))
+        onProductsExtracted(products)
+      } else if (extractedProducts.length > 0) {
+        // Un solo producto o usar callback individual
+        const extracted = extractedProducts[0]
+        onProductExtracted({
+          producto: extracted.producto || '',
+          precioYuanes: extracted.precioYuanes || 0,
+          freightYuanes: extracted.freight || 0,
+          cantidad: extracted.cantidad || 1,
+          peso: extracted.peso || 0,
+        })
+      }
 
       // Limpiar el input
       if (fileInputRef.current) {
