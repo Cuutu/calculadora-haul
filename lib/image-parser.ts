@@ -1,11 +1,11 @@
 /**
  * Parsea el texto extraído de una imagen de producto y extrae:
- * - Nombre del producto
- * - Precio en yuanes (¥)
- * - Freight (¥)
- * - Cantidad
- * - Peso (en gramos)
+ * - Price (precio en yuanes)
+ * - Freight (freight en yuanes, puede ser 0)
+ * - Quantity (cantidad)
+ * - Weight (peso en gramos)
  * 
+ * NO busca el título del producto - debe ser completado manualmente
  * Soporta múltiples productos en una sola imagen
  */
 
@@ -19,70 +19,42 @@ export interface ExtractedProductData {
 
 /**
  * Extrae múltiples productos del texto OCR
- * Solo detecta productos cuando hay Price y Freight cerca uno del otro
+ * Busca bloques con Price, Freight, Quantity, Weight
  */
 export function parseMultipleProducts(text: string): ExtractedProductData[] {
   const products: ExtractedProductData[] = []
   
-  // Buscar todos los bloques que contengan "Price:" y "Freight:" cerca uno del otro
-  // Esto indica un producto real
-  const lines = text.split('\n').map(line => line.trim())
+  // Buscar todas las ocurrencias de "Price:" que indican un producto
+  const pricePattern = /(?:price|precio)[:\s]*¥?\s*(\d+[.,]?\d*)/gi
+  const priceMatches = Array.from(text.matchAll(pricePattern))
   
-  // Buscar patrones de "Price:" seguido de "Freight:" en un rango cercano
-  const priceFreightPattern = /(?:price|precio)[:\s]*¥?\s*(\d+[.,]?\d*)[\s\S]*?(?:freight|env[ií]o|shipping)[:\s]*¥?\s*(\d+[.,]?\d*)/gi
-  
-  let match
-  const productBlocks: Array<{ start: number; end: number; price: number; freight: number }> = []
-  
-  while ((match = priceFreightPattern.exec(text)) !== null) {
-    const price = parseFloat(match[1].replace(',', '.'))
-    const freight = parseFloat(match[2].replace(',', '.'))
-    
-    if (price > 0 && price < 10000 && freight >= 0 && freight < 10000) {
-      const start = Math.max(0, match.index - 500)
-      const end = Math.min(text.length, match.index + match[0].length + 500)
-      productBlocks.push({ start, end, price, freight })
-    }
+  if (priceMatches.length === 0) {
+    return []
   }
   
-  // Si no encontramos el patrón Price+Freight, buscar solo "Price:" y verificar que haya datos cerca
-  if (productBlocks.length === 0) {
-    const priceOnlyPattern = /(?:price|precio)[:\s]*¥?\s*(\d+[.,]?\d*)/gi
-    const priceMatches = Array.from(text.matchAll(priceOnlyPattern))
+  // Para cada precio encontrado, buscar los demás datos cerca
+  for (let i = 0; i < priceMatches.length; i++) {
+    const priceMatch = priceMatches[i]
+    const priceIndex = priceMatch.index || 0
+    const price = parseFloat(priceMatch[1].replace(',', '.'))
     
-    for (const priceMatch of priceMatches) {
-      const price = parseFloat(priceMatch[1].replace(',', '.'))
-      if (price > 0 && price < 10000) {
-        const start = Math.max(0, (priceMatch.index || 0) - 500)
-        const end = Math.min(text.length, (priceMatch.index || 0) + 1000)
-        
-        // Buscar freight cerca de este precio
-        const blockText = text.substring(start, end)
-        const freightMatch = blockText.match(/(?:freight|env[ií]o|shipping)[:\s]*¥?\s*(\d+[.,]?\d*)/i)
-        const freight = freightMatch ? parseFloat(freightMatch[1].replace(',', '.')) : 0
-        
-        if (freight >= 0 && freight < 10000) {
-          productBlocks.push({ start, end, price, freight })
-        }
-      }
-    }
-  }
-  
-  // Procesar cada bloque encontrado
-  for (const block of productBlocks) {
-    const blockText = text.substring(block.start, block.end)
-    const product = extractProductFromBlock(blockText, block.price, block.freight)
+    if (price <= 0 || price >= 10000) continue
+    
+    // Definir el bloque de texto para este producto
+    // Desde 300 caracteres antes del precio hasta 500 caracteres después
+    // O hasta el siguiente precio si existe
+    const startIndex = Math.max(0, priceIndex - 300)
+    const endIndex = i < priceMatches.length - 1
+      ? Math.min(text.length, (priceMatches[i + 1].index || text.length) - 100)
+      : Math.min(text.length, priceIndex + 500)
+    
+    const blockText = text.substring(startIndex, endIndex)
+    
+    // Extraer datos del bloque
+    const product = extractProductFromBlock(blockText, price)
     
     if (product && !isDuplicate(product, products)) {
       products.push(product)
-    }
-  }
-  
-  // Si no encontramos nada con el método anterior, intentar un solo producto
-  if (products.length === 0) {
-    const singleProduct = extractProductFromBlock(text, 0, 0)
-    if (singleProduct && (singleProduct.precioYuanes > 0 || singleProduct.freight > 0)) {
-      products.push(singleProduct)
     }
   }
   
@@ -92,53 +64,32 @@ export function parseMultipleProducts(text: string): ExtractedProductData[] {
 /**
  * Extrae datos de un producto de un bloque de texto
  */
-function extractProductFromBlock(blockText: string, knownPrice: number = 0, knownFreight: number = 0): ExtractedProductData | null {
+function extractProductFromBlock(blockText: string, knownPrice: number): ExtractedProductData | null {
   const result: ExtractedProductData = {
-    producto: '',
+    producto: '', // No buscamos el título
     precioYuanes: knownPrice,
-    freight: knownFreight,
+    freight: 0,
     cantidad: 1,
     peso: 0,
   }
   
-  // Si no tenemos precio conocido, buscarlo
-  if (result.precioYuanes === 0) {
-    const pricePatterns = [
-      /(?:price|precio)[:\s]*¥?\s*(\d+[.,]?\d*)/i,
-      /¥\s*(\d+[.,]?\d*)/,
-    ]
-    
-    for (const pattern of pricePatterns) {
-      const match = blockText.match(pattern)
-      if (match && match[1]) {
-        const price = parseFloat(match[1].replace(',', '.'))
-        if (price > 0 && price < 10000) {
-          result.precioYuanes = price
-          break
-        }
+  // Buscar Freight (puede ser 0)
+  const freightPatterns = [
+    /(?:freight|env[ií]o|shipping)[:\s]*¥?\s*(\d+[.,]?\d*)/i,
+  ]
+  
+  for (const pattern of freightPatterns) {
+    const match = blockText.match(pattern)
+    if (match && match[1]) {
+      const freight = parseFloat(match[1].replace(',', '.'))
+      if (freight >= 0 && freight < 10000) {
+        result.freight = freight
+        break
       }
     }
   }
   
-  // Si no tenemos freight conocido, buscarlo
-  if (result.freight === 0) {
-    const freightPatterns = [
-      /(?:freight|env[ií]o|shipping)[:\s]*¥?\s*(\d+[.,]?\d*)/i,
-    ]
-    
-    for (const pattern of freightPatterns) {
-      const match = blockText.match(pattern)
-      if (match && match[1]) {
-        const freight = parseFloat(match[1].replace(',', '.'))
-        if (freight >= 0 && freight < 10000) {
-          result.freight = freight
-          break
-        }
-      }
-    }
-  }
-  
-  // Buscar cantidad
+  // Buscar Quantity
   const quantityPatterns = [
     /(?:quantity|qty|cantidad)[:\s]*(\d+)/i,
   ]
@@ -154,7 +105,7 @@ function extractProductFromBlock(blockText: string, knownPrice: number = 0, know
     }
   }
   
-  // Buscar peso
+  // Buscar Weight
   const weightPatterns = [
     /(?:weight|peso)[:\s]*(\d+[.,]?\d*)\s*g/i,
     /(\d+[.,]?\d*)\s*g(?:ram)?/i,
@@ -171,60 +122,8 @@ function extractProductFromBlock(blockText: string, knownPrice: number = 0, know
     }
   }
   
-  // Buscar nombre del producto
-  const productKeywords = [
-    'stainless steel',
-    'food grade',
-    'water',
-    'filter',
-    'usb',
-    'iphone',
-    'magnetic',
-    'dongle',
-    'universal',
-    'secondary',
-    'valve',
-    'coffee',
-    'powder',
-    'ring',
-    'tamper',
-    'distributor',
-  ]
-  
-  const lines = blockText.split('\n').map(line => line.trim()).filter(line => line.length > 10)
-  
-  for (const line of lines) {
-    const lowerLine = line.toLowerCase()
-    if (
-      productKeywords.some(keyword => lowerLine.includes(keyword)) &&
-      !/^[\d\s¥$.,:()]+$/.test(line) &&
-      !line.match(/^(price|freight|quantity|weight|order)/i)
-    ) {
-      let cleaned = line.replace(/^[^\w]+|[^\w]+$/g, '').trim()
-      if (cleaned.length > 5) {
-        result.producto = cleaned.substring(0, 100)
-        break
-      }
-    }
-  }
-  
-  // Si no encontramos producto por keywords, usar la primera línea significativa
-  if (!result.producto && lines.length > 0) {
-    for (const line of lines) {
-      if (
-        line.length > 5 &&
-        !/^[\d\s¥$.,:()]+$/.test(line) &&
-        !line.match(/^(price|freight|quantity|weight|order|sku|color)/i) &&
-        !line.match(/^\d+[.,]?\d*\s*(g|gram|kg|yuan|¥|\$)/i)
-      ) {
-        result.producto = line.substring(0, 100)
-        break
-      }
-    }
-  }
-  
-  // Solo retornar si tenemos al menos precio o freight
-  if (result.precioYuanes > 0 || result.freight > 0) {
+  // Solo retornar si tenemos precio válido
+  if (result.precioYuanes > 0) {
     return result
   }
   
@@ -236,11 +135,13 @@ function extractProductFromBlock(blockText: string, knownPrice: number = 0, know
  */
 function isDuplicate(newProduct: ExtractedProductData, existingProducts: ExtractedProductData[]): boolean {
   for (const existing of existingProducts) {
-    // Si precio y freight son iguales (o muy similares), es probablemente un duplicado
+    // Si precio, freight, cantidad y peso son iguales, es un duplicado
     const priceDiff = Math.abs(newProduct.precioYuanes - existing.precioYuanes)
     const freightDiff = Math.abs(newProduct.freight - existing.freight)
+    const qtyDiff = Math.abs(newProduct.cantidad - existing.cantidad)
+    const weightDiff = Math.abs(newProduct.peso - existing.peso)
     
-    if (priceDiff < 0.01 && freightDiff < 0.01) {
+    if (priceDiff < 0.01 && freightDiff < 0.01 && qtyDiff === 0 && weightDiff < 1) {
       return true
     }
   }
