@@ -122,23 +122,38 @@ function extractProductFromBlock(blockText: string, knownPrice: number): Extract
   }
   
   // Buscar Quantity - buscar después del precio
+  // El OCR puede leer "Quantity" como "Quan", "Quant", "Quy", etc.
+  // Buscar patrones como: "Quan 3", "Quant 2", "Quantity 1", "Quy 1"
   const quantityPatterns = [
-    /quantity[:\s]*(\d+)/gi,
+    /quan[tiy]*[:\s]*(\d+)/gi,  // Captura "Quantity", "Quan", "Quant", "Quy"
     /qty[:\s]*(\d+)/gi,
   ]
   
   for (const pattern of quantityPatterns) {
     const matches = Array.from(blockText.matchAll(pattern))
-    // Tomar el primer match después del inicio
+    // Tomar el primer match que tenga sentido
     for (const match of matches) {
       const qty = parseInt(match[1] || '1')
       if (qty > 0 && qty < 1000) {
         result.cantidad = qty
-        console.log('Quantity encontrada:', qty)
+        console.log('Quantity encontrada:', qty, 'del match:', match[0])
         break
       }
     }
     if (result.cantidad > 1) break
+  }
+  
+  // Si aún no encontramos cantidad, buscar cualquier número después de "Quan" o "Quant" (incluso con espacios)
+  if (result.cantidad === 1) {
+    // Buscar "Quan" o "Quant" seguido de espacio y número
+    const quanMatch = blockText.match(/quan[tiy]*\s+(\d+)/i)
+    if (quanMatch && quanMatch[1]) {
+      const qty = parseInt(quanMatch[1])
+      if (qty > 0 && qty < 1000) {
+        result.cantidad = qty
+        console.log('Quantity encontrada (patrón alternativo con espacio):', qty)
+      }
+    }
   }
   
   // Buscar Weight - buscar después del precio
